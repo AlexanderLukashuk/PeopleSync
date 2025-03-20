@@ -42,25 +42,7 @@ public class EventController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateEvent(Event ev)
     {
-        var appMetadataClaim = User.Claims.FirstOrDefault(c => c.Type == "app_metadata");
-        // var userRole = appMetadataClaim?.Value;
-        // Console.WriteLine($"User Role: {userRole}");
-        Console.WriteLine($"AppMetadata: {appMetadataClaim?.Value}");
-
-        foreach (var claim in User.Claims)
-        {
-            Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
-        }
-
-        if (appMetadataClaim == null)
-        {
-            return Forbid();
-        }
-
-        var appMetadata = JsonSerializer.Deserialize<Dictionary<string, object>>(appMetadataClaim.Value);
-        var userRole = appMetadata.TryGetValue("role", out var roleValue) ? roleValue?.ToString() : null;
-
-        if (userRole != "organizer")
+        if (!IsOrganizer())
         {
             return Forbid();
         }
@@ -74,23 +56,7 @@ public class EventController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(int id, Event updatedEvent)
     {
-        var appMetadataClaim = User.Claims.FirstOrDefault(c => c.Type == "app_metadata");
-        Console.WriteLine($"AppMetadata: {appMetadataClaim?.Value}");
-
-        foreach (var claim in User.Claims)
-        {
-            Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
-        }
-
-        if (appMetadataClaim == null)
-        {
-            return Forbid();
-        }
-
-        var appMetadata = JsonSerializer.Deserialize<Dictionary<string, object>>(appMetadataClaim.Value);
-        var userRole = appMetadata.TryGetValue("role", out var roleValue) ? roleValue?.ToString() : null;
-
-        if (userRole != "organizer")
+        if (!IsOrganizer())
         {
             return Forbid();
         }
@@ -113,23 +79,7 @@ public class EventController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
     {
-        var appMetadataClaim = User.Claims.FirstOrDefault(c => c.Type == "app_metadata");
-        Console.WriteLine($"AppMetadata: {appMetadataClaim?.Value}");
-
-        foreach (var claim in User.Claims)
-        {
-            Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
-        }
-
-        if (appMetadataClaim == null)
-        {
-            return Forbid();
-        }
-
-        var appMetadata = JsonSerializer.Deserialize<Dictionary<string, object>>(appMetadataClaim.Value);
-        var userRole = appMetadata.TryGetValue("role", out var roleValue) ? roleValue?.ToString() : null;
-
-        if (userRole != "organizer")
+        if (!IsOrganizer())
         {
             return Forbid();
         }
@@ -143,5 +93,27 @@ public class EventController : ControllerBase
         context.Events.Remove(ev);
         await context.SaveChangesAsync();
         return NoContent();
+    }
+
+    // MOVE TO HELPERS OR SOMETHING
+    private bool IsOrganizer()
+    {
+        var appMetadataClaim = User.Claims.FirstOrDefault(c => c.Type == "app_metadata");
+        Console.WriteLine($"AppMetadata: {appMetadataClaim?.Value}");
+
+        foreach (var claim in User.Claims)
+        {
+            Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
+        }
+
+        if (appMetadataClaim == null)
+        {
+            return false;
+        }
+
+        var appMetadata = JsonSerializer.Deserialize<Dictionary<string, object>>(appMetadataClaim.Value);
+        var userRole = appMetadata.TryGetValue("role", out var roleValue) ? roleValue?.ToString() : null;
+
+        return userRole == "organizer" || userRole == "admin";
     }
 }
